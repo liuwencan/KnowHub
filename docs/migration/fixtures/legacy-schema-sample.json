@@ -1,0 +1,7 @@
+{
+  "knowledge_document": {"doc_id":101,"doc_title":"Synthetic handbook","status":"VECTOR_STORED","accessible_by":"VISITOR","current_version_id":201,"deleted":0},
+  "knowledge_document_version": {"version_id":201,"doc_id":101,"version":"1.0.0","content_hash":"redacted-sha256","status":"VECTOR_STORED","upload_user":"fixture-user","deleted":0},
+  "knowledge_segment": {"id":301,"chunk_id":"fixture-chunk-1","document_id":101,"document_version":201,"chunk_order":1,"metadata":"{\"source\":\"fixture\"}","status":"VECTOR_STORED","deleted":0},
+  "chat_conversation": {"conversation_id":"fixture-conversation","user_id":"fixture-user","status":"active","deleted":0},
+  "chat_message": {"message_id":"fixture-message","conversation_id":"fixture-conversation","type":"ASSISTANT","content":"Synthetic answer","rag_references":[],"cache_hit":0,"deleted":0}
+}

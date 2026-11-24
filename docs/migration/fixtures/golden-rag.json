@@ -1,0 +1,10 @@
+[
+  {"id":"general-01","question":"推荐几部好看的电视剧","route":"general_chat","expected_citations":0},
+  {"id":"doc-01","question":"雨刮器怎么换？","route":"document_search","expected_intent":"车辆使用与技术指导","expected_citations":1},
+  {"id":"repair-01","question":"你们店换机油多少钱？我想去店里换","route":"document_search","expected_intent":"售后维修与保养"},
+  {"id":"sql-01","question":"我的订单号是ORD-TEST-001，帮我查一下进度","route":"relational_data","entities":{"order_id":"ORD-TEST-001"},"read_only":true},
+  {"id":"graph-01","question":"哪些车是纯电动的？","route":"graph_data","read_only":true},
+  {"id":"acl-01","question":"公司内部尚未公开的车型政策是什么？","route":"document_search","visible_scope":["VISITOR"],"expected_citations":0},
+  {"id":"card-01","question":"查询我的车辆信息","route":"relational_data","expected_card":"vehicle"},
+  {"id":"failure-01","question":"查询一个不存在的知识主题","route":"document_search","expected_warning":"insufficient_evidence"}
+]
