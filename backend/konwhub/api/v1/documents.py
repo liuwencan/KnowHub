@@ -6,15 +6,17 @@ from starlette.datastructures import UploadFile
 from konwhub.api.dependencies import current_session, require_staff
 from konwhub.ingestion.splitters import split_length, split_markdown_parent_child, split_markdown_sibling, split_regex, split_smart
 
+# 创建一个router, 请求前缀都为 /documents
 router = APIRouter(prefix="/documents", tags=["documents"])
 
-
+# /documents
 @router.get("")
 def list_documents(request: Request, limit: int = 100, offset: int = 0, session=Depends(current_session)) -> list[dict[str, object]]:
     records = list(request.app.state.documents.documents.values())
     return [{"doc_id": item.doc_id, "doc_title": item.title, "status": item.status, "current_version_id": item.current_version_id} for item in records[offset:offset + limit]]
 
 
+# /documents/upload
 @router.post("/upload")
 async def upload_document(request: Request, session=Depends(require_staff)) -> dict[str, object]:
     try:
@@ -25,16 +27,20 @@ async def upload_document(request: Request, session=Depends(require_staff)) -> d
     except AssertionError:
         filename = request.headers.get("x-file-name")
         content = await request.body()
+
     if not filename or filename.rsplit(".", 1)[-1].lower() not in {"pdf", "docx", "xlsx", "xlsm", "csv", "md", "txt"}:
         raise HTTPException(status_code=415, detail="Unsupported file type")
+    
     if len(content) > 50 * 1024 * 1024:
         raise HTTPException(status_code=413, detail="Upload exceeds 50 MiB limit")
+    
     store = request.app.state.documents
     record = store.create(filename)
     version = store.add_version(record, hashlib.sha256(content).hexdigest())
     return {"doc_id": record.doc_id, "version_id": version.version_id, "status": record.status}
 
 
+# /documents/?/segments
 @router.get("/{doc_id}/segments")
 def list_segments(doc_id: int, request: Request, limit: int = 100, offset: int = 0, session=Depends(current_session)) -> list[dict[str, object]]:
     record = request.app.state.documents.documents.get(doc_id)
@@ -42,7 +48,7 @@ def list_segments(doc_id: int, request: Request, limit: int = 100, offset: int =
         raise HTTPException(status_code=404, detail="Document not found")
     return [{"id": item.segment_id, "text": item.text, "chunk_order": item.chunk_order, "metadata": item.metadata} for item in record.segments[offset:offset + limit] if not item.deleted]
 
-
+# /documents/?/segments/?
 @router.put("/{doc_id}/segments/{segment_id}")
 async def edit_segment(doc_id: int, segment_id: int, request: Request, session=Depends(require_staff)) -> dict[str, object]:
     record = request.app.state.documents.documents.get(doc_id)

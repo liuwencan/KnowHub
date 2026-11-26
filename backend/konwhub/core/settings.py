@@ -1,18 +1,12 @@
 from functools import lru_cache
-from pathlib import Path
 
 from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
-
 class Settings(BaseSettings):
     """Validated deployment settings with no credential defaults."""
-
-    model_config = SettingsConfigDict(
-        env_prefix="KONWHUB_",
-        env_file=Path(__file__).resolve().parents[2] / ".env",
-        extra="ignore",
-    )
+    
+    model_config = SettingsConfigDict(env_prefix="KONWHUB_", env_file=".env", extra="ignore")
 
     app_name: str = "KonwHub"
     environment: str = "development"
