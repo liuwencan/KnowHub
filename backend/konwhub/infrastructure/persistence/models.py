@@ -1,11 +1,69 @@
 from datetime import date, datetime
 
-from sqlalchemy import BigInteger, Boolean, Date, DateTime, Integer, String, Text
+from sqlalchemy import BigInteger, Boolean, Date, DateTime, Integer, String, Text, ForeignKey, UniqueConstraint
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
 
 class Base(DeclarativeBase):
     pass
+
+
+IdType = BigInteger().with_variant(Integer, "sqlite")
+
+
+class Department(Base):
+    __tablename__ = "departments"
+    id: Mapped[int] = mapped_column(IdType, primary_key=True, autoincrement=True)
+    parent_id: Mapped[int | None] = mapped_column(BigInteger, index=True)
+    name: Mapped[str] = mapped_column(String(128))
+    path: Mapped[str] = mapped_column(String(512), index=True)
+    sort_order: Mapped[int] = mapped_column(Integer, default=0)
+    status: Mapped[int] = mapped_column(Integer, default=1, index=True)
+    created_at: Mapped[datetime | None] = mapped_column(DateTime)
+    updated_at: Mapped[datetime | None] = mapped_column(DateTime)
+    deleted_at: Mapped[datetime | None] = mapped_column(DateTime)
+
+
+class Role(Base):
+    __tablename__ = "roles"
+    id: Mapped[int] = mapped_column(IdType, primary_key=True, autoincrement=True)
+    code: Mapped[str] = mapped_column(String(64), unique=True)
+    name: Mapped[str] = mapped_column(String(64))
+    description: Mapped[str | None] = mapped_column(String(255))
+    created_at: Mapped[datetime | None] = mapped_column(DateTime)
+    updated_at: Mapped[datetime | None] = mapped_column(DateTime)
+
+
+class User(Base):
+    __tablename__ = "users"
+    id: Mapped[int] = mapped_column(IdType, primary_key=True, autoincrement=True)
+    employee_no: Mapped[str] = mapped_column(String(64), unique=True)
+    username: Mapped[str] = mapped_column(String(64), unique=True)
+    real_name: Mapped[str] = mapped_column(String(128))
+    password: Mapped[str] = mapped_column(String(255))
+    department_id: Mapped[int | None] = mapped_column(BigInteger, index=True)
+    avatar_url: Mapped[str | None] = mapped_column(String(512))
+    status: Mapped[int] = mapped_column(Integer, default=1, index=True)
+    created_at: Mapped[datetime | None] = mapped_column(DateTime)
+    updated_at: Mapped[datetime | None] = mapped_column(DateTime)
+    deleted_at: Mapped[datetime | None] = mapped_column(DateTime, index=True)
+
+
+class UserRole(Base):
+    __tablename__ = "user_roles"
+    __table_args__ = (UniqueConstraint("user_id", "role_id", "department_id", name="uk_user_roles_scope"),)
+    id: Mapped[int] = mapped_column(IdType, primary_key=True, autoincrement=True)
+    user_id: Mapped[int] = mapped_column(BigInteger, index=True)
+    role_id: Mapped[int] = mapped_column(BigInteger, index=True)
+    department_id: Mapped[int | None] = mapped_column(BigInteger, index=True)
+    created_at: Mapped[datetime | None] = mapped_column(DateTime)
+
+
+class RoleDepartment(Base):
+    __tablename__ = "role_departments"
+    role_id: Mapped[int] = mapped_column(BigInteger, primary_key=True)
+    department_id: Mapped[int] = mapped_column(BigInteger, primary_key=True, index=True)
+    created_at: Mapped[datetime | None] = mapped_column(DateTime)
 
 
 class KnowledgeDocument(Base):

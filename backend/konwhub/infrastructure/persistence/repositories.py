@@ -1,9 +1,32 @@
 from collections.abc import Sequence
 
-from sqlalchemy import select
+from sqlalchemy import select, or_
 from sqlalchemy.orm import Session
 
-from konwhub.infrastructure.persistence.models import ChatConversation, ChatMessage, KnowledgeDocument, KnowledgeDocumentVersion, KnowledgeSegment, TableMeta
+from konwhub.infrastructure.persistence.models import ChatConversation, ChatMessage, KnowledgeDocument, KnowledgeDocumentVersion, KnowledgeSegment, TableMeta, Department, Role, User, UserRole, RoleDepartment
+
+
+class OrganizationRepository:
+    """Persistence boundary for organization and authorization records."""
+    def __init__(self, session: Session) -> None:
+        self.session = session
+
+    def get_department(self, item_id: int): return self.session.get(Department, item_id)
+    def list_departments(self): return self.session.scalars(select(Department).where(Department.deleted_at.is_(None)).order_by(Department.sort_order, Department.id)).all()
+    def get_role(self, item_id: int): return self.session.get(Role, item_id)
+    def list_roles(self): return self.session.scalars(select(Role).order_by(Role.id)).all()
+    def get_user(self, item_id: int): return self.session.get(User, item_id)
+    def find_user(self, identifier: str):
+        return self.session.scalar(select(User).where(User.deleted_at.is_(None), or_(User.username == identifier, User.employee_no == identifier)))
+    def list_users(self): return self.session.scalars(select(User).where(User.deleted_at.is_(None)).order_by(User.id)).all()
+    def list_user_roles(self, user_id: int | None = None):
+        statement = select(UserRole)
+        if user_id is not None: statement = statement.where(UserRole.user_id == user_id)
+        return self.session.scalars(statement.order_by(UserRole.id)).all()
+    def list_role_departments(self, role_id: int | None = None):
+        statement = select(RoleDepartment)
+        if role_id is not None: statement = statement.where(RoleDepartment.role_id == role_id)
+        return self.session.scalars(statement.order_by(RoleDepartment.role_id, RoleDepartment.department_id)).all()
 
 
 class KnowledgeDocumentRepository:

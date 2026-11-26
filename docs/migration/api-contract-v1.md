@@ -4,7 +4,7 @@ This contract records the Java service surface used as the compatibility baselin
 
 ## Envelope and authentication
 
-Legacy JSON endpoints return `{code, message, data}` through the `R<T>` envelope. The Python API preserves the same data shapes where compatibility matters and exposes a versioned `/api/v1` namespace for new clients. Customer login is `POST /auth/login`; staff login is `POST /auth/staffLogin`; logout is `POST /auth/logout`; identity and status are `GET /auth/userInfo` and `GET /auth/isLogin`.
+All JSON endpoints in the Python API return the common envelope `{success, message, errorCode, data}`. Successful business values are always under `data`; errors set `success` to `false` and provide a stable HTTP or validation code in `errorCode`. Streaming chat endpoints remain `text/event-stream` and keep their typed event format. The versioned `/api/v1` namespace is used for new clients. Customer login is `POST /auth/login`; staff login is `POST /auth/staffLogin`; logout is `POST /auth/logout`; identity and status are `GET /auth/userInfo` and `GET /auth/isLogin`.
 
 The compatibility client may send the opaque session in the `satoken` cookie or header. Protected requests require a live server-side session. Customer and staff sessions have separate principals; staff operations additionally require the configured reviewer/admin role.
 

@@ -1,17 +1,87 @@
 from datetime import date
-from typing import Literal
+from typing import Any, Generic, Literal, TypeVar
 
 from pydantic import BaseModel, Field
 
+T = TypeVar("T")
+
+
+class Response(BaseModel, Generic[T]):
+    """所有 JSON API 共用的响应契约。"""
+
+    success: bool = True
+    message: str | None = None
+    error_code: str | None = Field(default=None, alias="errorCode")
+    data: T | None = None
+
+    model_config = {"populate_by_name": True}
+
+    @classmethod
+    def success_response(cls, data: T | None = None, message: str | None = None) -> "Response[T]":
+        return cls(success=True, message=message, data=data)
+
+    @classmethod
+    def fail(cls, message: str | None = None, error_code: str | None = None, data: Any = None) -> "Response[Any]":
+        return cls(success=False, message=message, errorCode=error_code, data=data)
+
 
 class LoginRequest(BaseModel):
-    phone: str
+    phone: str | None = None
+    username: str | None = None
     password: str
+
+    def identifier(self) -> str:
+        return self.username or self.phone or ""
 
 
 class StaffLoginRequest(BaseModel):
-    emp_id: str
+    emp_id: str | None = None
+    employee_no: str | None = None
+    username: str | None = None
     password: str
+
+    def identifier(self) -> str:
+        return self.employee_no or self.emp_id or self.username or ""
+
+
+class RegisterRequest(BaseModel):
+    username: str = Field(min_length=1, max_length=64)
+    real_name: str = Field(min_length=1, max_length=128)
+    password: str = Field(min_length=6, max_length=128)
+    employee_no: str | None = Field(default=None, max_length=64)
+    department_id: int | None = None
+
+
+class DepartmentRequest(BaseModel):
+    parent_id: int | None = None
+    name: str = Field(min_length=1, max_length=128)
+    path: str | None = None
+    sort_order: int = 0
+    status: int = Field(default=1, ge=0, le=1)
+
+
+class RoleRequest(BaseModel):
+    code: str = Field(min_length=1, max_length=64)
+    name: str = Field(min_length=1, max_length=64)
+    description: str | None = Field(default=None, max_length=255)
+
+
+class UserUpdateRequest(BaseModel):
+    real_name: str | None = Field(default=None, max_length=128)
+    department_id: int | None = None
+    avatar_url: str | None = Field(default=None, max_length=512)
+    status: int | None = Field(default=None, ge=0, le=2)
+
+
+class UserRoleRequest(BaseModel):
+    user_id: int
+    role_id: int
+    department_id: int | None = None
+
+
+class RoleDepartmentRequest(BaseModel):
+    role_id: int
+    department_id: int
 
 
 class Identity(BaseModel):

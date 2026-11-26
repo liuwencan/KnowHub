@@ -1,0 +1,7 @@
+<script setup lang="ts">
+import { computed } from 'vue'
+import type { ChatMessage } from '../chat'
+const props = defineProps<{ message: ChatMessage }>(); const isUser = computed(() => props.message.role === 'user')
+async function copy() { try { await navigator.clipboard.writeText(props.message.content) } catch { /* Clipboard is optional. */ } }
+</script>
+<template><article class="message-row" :class="{ 'is-user': isUser }"><div v-if="!isUser" class="assistant-identity"><span class="brand-mark tiny">K</span><strong>KnowHub</strong><span v-if="message.status === 'streaming'" class="stream-status">正在整理…</span></div><div class="message-content"><div class="message-bubble"><p v-if="isUser">{{ message.content }}</p><div v-else class="markdown-body"><p v-if="message.content">{{ message.content }}</p><p v-else-if="message.status === 'streaming'" class="stream-placeholder">正在整理你的问题…</p></div></div><div v-if="!isUser && message.references?.length" class="reference-list"><span>引用资料</span><small v-for="(item, index) in message.references" :key="index">{{ item.source || `资料 ${index + 1}` }}</small></div><div v-if="message.status === 'failed'" class="message-error">{{ message.error || '响应失败，请重试' }}</div><div v-else-if="!isUser && message.content && message.status === 'completed'" class="message-tools"><button class="icon-button" aria-label="复制回复" title="复制回复" @click="copy">▣</button><span>回复完成</span></div></div><span v-if="isUser" class="avatar message-avatar">U</span></article></template>

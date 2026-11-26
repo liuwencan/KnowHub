@@ -1,18 +1,31 @@
 export type Identity = { user_id: string; role: 'customer' | 'staff'; permissions: string[] }
+export type AuthResponse = { identity: Identity; expires_in: number }
 export type SseEvent = { type: 'progress' | 'token' | 'reference' | 'card' | 'warning' | 'error' | 'done'; [key: string]: unknown }
+export type ApiResponse<T> = { success: boolean; message: string | null; errorCode: string | null; data: T | null }
 
 const base = (import.meta.env.VITE_API_BASE as string | undefined) ?? '/api/v1'
 
+async function readResponse<T>(response: Response, fallback: string): Promise<T> {
+  const payload = await response.json().catch(() => ({})) as Partial<ApiResponse<T>> & { detail?: string }
+  if (!response.ok || payload.success === false) {
+    throw new Error(payload.message ?? payload.detail ?? `${fallback}: ${response.status}`)
+  }
+  return payload.data as T
+}
+
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const response = await fetch(`${base}${path}`, { credentials: 'include', ...init, headers: { 'Content-Type': 'application/json', ...(init?.headers ?? {}) } })
-  if (!response.ok) throw new Error((await response.json().catch(() => ({}))).detail ?? `请求失败: ${response.status}`)
-  return response.json() as Promise<T>
+  return readResponse<T>(response, '请求失败')
 }
 
 export const api = {
-  login: (phone: string, password: string) => request<{ identity: Identity }>('/auth/login', { method: 'POST', body: JSON.stringify({ phone, password }) }),
-  staffLogin: (emp_id: string, password: string) => request<{ identity: Identity }>('/auth/staffLogin', { method: 'POST', body: JSON.stringify({ emp_id, password }) }),
-  logout: () => request<{ success: boolean }>('/auth/logout', { method: 'POST' }),
+  auth: {
+    login: (username: string, password: string) => request<AuthResponse>('/auth/login', { method: 'POST', body: JSON.stringify({ username, password }) }),
+    staffLogin: (employee_no: string, password: string) => request<AuthResponse>('/auth/staffLogin', { method: 'POST', body: JSON.stringify({ employee_no, password }) }),
+    register: (username: string, real_name: string, password: string) => request<AuthResponse>('/auth/register', { method: 'POST', body: JSON.stringify({ username, real_name, password }) }),
+    current: () => request<Identity>('/auth/userInfo'),
+    logout: () => request<null>('/auth/logout', { method: 'POST' }),
+  },
   documents: () => request<Array<{ doc_id: number; doc_title: string; status: string; current_version_id?: number }>>('/documents'),
   conversations: () => request<Array<{ conversation_id: string; message_count: string }>>('/chat/conversation/list'),
   messages: (id: string) => request<Array<Record<string, unknown>>>(`/chat/conversation/${id}/messages`),
@@ -24,14 +37,13 @@ export const api = {
   async upload(file: File): Promise<Record<string, unknown>> {
     const form = new FormData(); form.append('file', file)
     const response = await fetch(`${base}/documents/upload`, { method: 'POST', credentials: 'include', body: form })
-    if (!response.ok) throw new Error((await response.json().catch(() => ({}))).detail ?? `上传失败: ${response.status}`)
-    return response.json()
+    return readResponse<Record<string, unknown>>(response, '上传失败')
   },
   split: (id: number, text: string, split_type: string, max_length: number) => request<Record<string, unknown>>(`/documents/${id}/split`, { method: 'POST', body: JSON.stringify({ text, split_type, max_length }) }),
   versions: (id: number) => request<Array<Record<string, unknown>>>(`/documents/${id}/versions`),
   segments: (id: number) => request<Array<Record<string, unknown>>>(`/documents/${id}/segments`),
-  async streamChat(message: string, conversationId: string | undefined, onEvent: (event: SseEvent) => void): Promise<void> {
-    const response = await fetch(`${base}/chat/send`, { method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ message, conversation_id: conversationId }) })
+  async streamChat(message: string, conversationId: string | undefined, onEvent: (event: SseEvent) => void, signal?: AbortSignal): Promise<void> {
+    const response = await fetch(`${base}/chat/send`, { method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ message, conversation_id: conversationId }), signal })
     if (!response.ok || !response.body) throw new Error(`流式请求失败: ${response.status}`)
     const reader = response.body.getReader(); const decoder = new TextDecoder(); let buffer = ''
     while (true) {

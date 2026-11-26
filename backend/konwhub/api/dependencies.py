@@ -1,6 +1,11 @@
 from fastapi import Depends, Header, HTTPException, Request
 
+from konwhub.application.auth_service import AuthService
 from konwhub.infrastructure.cache.sessions import Session, SessionStore
+
+
+def auth_service(request: Request) -> AuthService:
+    return request.app.state.auth_service
 
 
 def session_store(request: Request) -> SessionStore:
